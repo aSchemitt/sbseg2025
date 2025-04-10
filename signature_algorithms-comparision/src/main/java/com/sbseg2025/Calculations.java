@@ -44,13 +44,25 @@ public class Calculations {
         String currentAlgorithm = ecdsa;
         String currentProvider = "BC";
         // String currentProvider = "BCPQC";
+        
+        // run with ECDSA
+        runTests(currentAlgorithm, currentProvider);
+        currentAlgorithm = fips204;
+        // run with ML-DSA
+        runTests(currentAlgorithm, currentProvider);
+        currentAlgorithm = fips205;
+        // run with SLH-DSA
+        runTests(currentAlgorithm, currentProvider);
+        
+    }
 
+    public static void runTests(String currentAlgorithm, String currentProvider) {
         try {
             // Step 3
             // Generate the keys
             KeyPair keys = GenerateKeyPair(currentAlgorithm, currentProvider);
             PrivateKey priv = keys.getPrivate();
-            PublicKey pub = keys.getPublic();
+            // PublicKey pub = keys.getPublic();
 
             // Step 4
             // Generate random data
