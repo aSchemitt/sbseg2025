@@ -1,0 +1,13 @@
+Key size:
+Bitcoin curve: https://en.bitcoin.it/wiki/Secp256k1 (~256 bits)
+Ethereum curve: Secp256k1 (~256 bits)
+solana curve: ed25519 (~256 bits) https://medium.com/@ankitacode11/solana-blockchain-cryptographic-foundations-and-architecture-ba8827f28108
+HyperLedger Fabric: ECDSA 256(prime256v1)/384(secp384r1) bits https://hyperledger-fabric-ca.readthedocs.io/en/latest/users-guide.html#initializing-the-server:~:text=Algorithms%20and%20key%20sizes
+
+Bitcoin transaction: https://en.bitcoin.it/wiki/Transaction
+    Minimum 10 bytes + Inputs + Outputs + Witness
+    Inputs: [41,49] + ScriptSignature
+    Outputs: [9,17] + Script
+    Witness: ?
+    Minimum: 60 Bytes
+
