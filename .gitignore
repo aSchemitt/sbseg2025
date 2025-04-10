@@ -1,3 +1,5 @@
 python/
 saida.txt
 teste.txt
+*.class
+.vscode/

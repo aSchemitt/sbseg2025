@@ -47,6 +47,7 @@
         <artifactId>bcprov-jdk18on</artifactId>
         <version>1.80</version>
     </dependency>
+    
   </dependencies>
 
   <build>
@@ -91,6 +92,14 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.6.1</version>
         </plugin>
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.0.0</version>
+            <configuration>
+                <mainClass>com.sbseg2025.Calculations</mainClass>
+            </configuration>
+          </plugin>
       </plugins>
     </pluginManagement>
   </build>

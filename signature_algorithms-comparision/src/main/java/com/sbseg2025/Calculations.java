@@ -41,7 +41,7 @@ public class Calculations {
         String fips204 = "ML-DSA";
         String fips205 = "SLH-DSA";
         String ecdsa = "SHA256withECDSA";
-        String currentAlgorithm = fips205;
+        String currentAlgorithm = ecdsa;
         String currentProvider = "BC";
         // String currentProvider = "BCPQC";
 
