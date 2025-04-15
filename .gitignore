@@ -3,3 +3,6 @@ saida.txt
 teste.txt
 *.class
 .vscode/
+*.lst
+pom.properties
+*.jar
