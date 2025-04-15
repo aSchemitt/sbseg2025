@@ -40,12 +40,16 @@ public class Calculations {
         // Algorithms options
         String fips204 = "ML-DSA";
         String fips205 = "SLH-DSA";
-        String ecdsa = "SHA256withECDSA";
-        String currentAlgorithm = ecdsa;
+        String ecdsa256 = "SHA256withECDSA";
+        String ecdsa384 = "SHA384withECDSA";
+        String currentAlgorithm = ecdsa256;
         String currentProvider = "BC";
         // String currentProvider = "BCPQC";
         
-        // run with ECDSA
+        // run with ECDSA 256
+        runTests(currentAlgorithm, currentProvider);
+        currentAlgorithm = ecdsa384;
+        // run with ECDSA 384
         runTests(currentAlgorithm, currentProvider);
         currentAlgorithm = fips204;
         // run with ML-DSA
@@ -62,7 +66,7 @@ public class Calculations {
             // Generate the keys
             KeyPair keys = GenerateKeyPair(currentAlgorithm, currentProvider);
             PrivateKey priv = keys.getPrivate();
-            // PublicKey pub = keys.getPublic();
+            PublicKey pub = keys.getPublic();
 
             // Step 4
             // Generate random data
@@ -79,9 +83,10 @@ public class Calculations {
             // Sign the transactions
             int numbOfIterations = 10_000;
             byte[] signature = null;
-            long sigStartTime, sigElapsedTime;
-            double sum = 0.0;
-            ArrayList<String> measures = new ArrayList<>();
+            long sigStartTime, sigElapsedTime, verifyStartTime, verifyElapsedTime;
+            double sumSign = 0.0, sumVerify = 0.0;
+            ArrayList<String> signMeasures = new ArrayList<>();
+            ArrayList<String> verifyMeasures = new ArrayList<>();
             long startTime, elapsedTime;
 
             startTime = System.nanoTime();
@@ -90,8 +95,14 @@ public class Calculations {
                 signature = SignData(priv, data, currentAlgorithm, currentProvider);
                 sigElapsedTime = System.nanoTime() - sigStartTime;
                 
-                sum += sigElapsedTime;
-                measures.add(String.valueOf(sigElapsedTime));
+                verifyStartTime = System.nanoTime();
+                VerifyData(pub, data, signature, currentAlgorithm, currentProvider);
+                verifyElapsedTime = System.nanoTime() - verifyStartTime;
+
+                sumSign += sigElapsedTime;
+                signMeasures.add(String.valueOf(sigElapsedTime));
+                sumVerify += verifyElapsedTime;
+                verifyMeasures.add(String.valueOf(verifyElapsedTime));
                 data = updateData(data);
             }
             elapsedTime = System.nanoTime() - startTime;
@@ -99,7 +110,7 @@ public class Calculations {
             // Step 7 & 8
             // Calculate mean and standard deviation &
             // Save measured times to a file
-            saveCalculateMeasures(measures, sum, elapsedTime, currentAlgorithm);
+            saveCalculateMeasures(signMeasures, verifyMeasures, sumSign, sumVerify, elapsedTime, currentAlgorithm);
 
         } catch (Exception e) {
             System.out.println(e);
@@ -123,11 +134,12 @@ public class Calculations {
     }
 
     // Saves measured data and calculates mean and standard deviation
-    public static void saveCalculateMeasures(List<String> measures, double sum, long totalTime, String algorithm) {
-        double mean, standardDeviationBase = 0.0, standardDeviationSamples = 0.0, standardDeviationPopulation = 0.0;
-        mean = sum / measures.size();
+    public static void saveCalculateMeasures(List<String> signMeasures, List<String> verifyMeasures, double sumSign, double sumVerify, long totalTime, String algorithm) {
+        // sign
+        double signMean, signStandardDeviationBase = 0.0, signStandardDeviationSamples = 0.0, signStandardDeviationPopulation = 0.0;
+        signMean = sumSign / signMeasures.size();
 
-        String fileDir = "results/";
+        String fileDir = "results/sign/";
         String fileName = algorithm+".txt";
         String filePath = fileDir + fileName;
 
@@ -141,22 +153,60 @@ public class Calculations {
         }
 
         try (FileWriter writer = new FileWriter(filePath)) {
-            for (String string : measures) {
+            for (String string : signMeasures) {
                 writer.write(string + "\n");
                 // double aux = Double.parseDouble(string.split(";")[0]) - mean;
-                double aux = Double.parseDouble(string) - mean;
-                standardDeviationBase += Math.pow(aux, 2.0);
+                double aux = Double.parseDouble(string) - signMean;
+                signStandardDeviationBase += Math.pow(aux, 2.0);
             }
-            standardDeviationSamples = (Math.sqrt(standardDeviationBase / (measures.size() - 1))) ;
-            standardDeviationPopulation = (Math.sqrt(standardDeviationBase / (measures.size()))) ;
-            System.out.println("mean: " + (mean) + " ns");
-            System.out.println("standard deviation samples: " + standardDeviationSamples + " ns");
-            System.out.println("standard deviation population: " + standardDeviationPopulation + " ns");
+            signStandardDeviationSamples = (Math.sqrt(signStandardDeviationBase / (signMeasures.size() - 1))) ;
+            signStandardDeviationPopulation = (Math.sqrt(signStandardDeviationBase / (signMeasures.size()))) ;
+            System.out.println("mean: " + (signMean) + " ns");
+            System.out.println("standard deviation samples: " + signStandardDeviationSamples + " ns");
+            System.out.println("standard deviation population: " + signStandardDeviationPopulation + " ns");
 
-            writer.write("\nmean: " + (mean) + " ns");
-            writer.write("\nstandard deviation samples: " + standardDeviationSamples + " ns");
-            writer.write("\nstandard deviation population: " + standardDeviationPopulation + " ns");
+            writer.write("\nmean: " + (signMean) + " ns");
+            writer.write("\nstandard deviation samples: " + signStandardDeviationSamples + " ns");
+            writer.write("\nstandard deviation population: " + signStandardDeviationPopulation + " ns");
             writer.write("\ntotal time of signatures: "+ (totalTime) + " ns");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+        // verify
+        double verifyMean, verifyStandardDeviationBase = 0.0, verifyStandardDeviationSamples = 0.0, verifyStandardDeviationPopulation = 0.0;
+        verifyMean = sumVerify / verifyMeasures.size();
+
+        fileDir = "results/verify/";
+        fileName = algorithm+".txt";
+        filePath = fileDir + fileName;
+
+        // Create the directory, if not exists
+        dir = new File(fileDir);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (!created) {
+                System.err.println("Unable to create directory: " + dir.getPath());
+            }
+        }
+
+        try (FileWriter writer = new FileWriter(filePath)) {
+            for (String string : signMeasures) {
+                writer.write(string + "\n");
+                // double aux = Double.parseDouble(string.split(";")[0]) - mean;
+                double aux = Double.parseDouble(string) - verifyMean;
+                verifyStandardDeviationBase += Math.pow(aux, 2.0);
+            }
+            verifyStandardDeviationSamples = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size() - 1))) ;
+            verifyStandardDeviationPopulation = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size()))) ;
+            System.out.println("mean: " + (verifyMean) + " ns");
+            System.out.println("standard deviation samples: " + verifyStandardDeviationSamples + " ns");
+            System.out.println("standard deviation population: " + verifyStandardDeviationPopulation + " ns");
+
+            writer.write("\nmean: " + (verifyMean) + " ns");
+            writer.write("\nstandard deviation samples: " + verifyStandardDeviationSamples + " ns");
+            writer.write("\nstandard deviation population: " + verifyStandardDeviationPopulation + " ns");
+            writer.write("\ntotal time of verifies: "+ (totalTime) + " ns");
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -167,7 +217,7 @@ public class Calculations {
     public static KeyPair GenerateKeyPair(String algorithm, String provider) throws Exception {
         KeyPairGenerator keyPairGenerator;
         // ECDSA
-        if (algorithm.equals("SHA256withECDSA")) {
+        if (algorithm.equals("SHA256withECDSA") || algorithm.equals("SHA384withECDSA")) {
             ECGenParameterSpec Spec = new ECGenParameterSpec("secp256k1");
 
             keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", provider);
