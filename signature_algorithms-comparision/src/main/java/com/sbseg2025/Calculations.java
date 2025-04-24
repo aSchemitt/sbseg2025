@@ -87,6 +87,7 @@ public class Calculations {
             double sumSign = 0.0, sumVerify = 0.0;
             ArrayList<String> signMeasures = new ArrayList<>();
             ArrayList<String> verifyMeasures = new ArrayList<>();
+            ArrayList<String> sizeMeasures = new ArrayList<>();
             long startTime, elapsedTime;
 
             startTime = System.nanoTime();
@@ -98,6 +99,8 @@ public class Calculations {
                 verifyStartTime = System.nanoTime();
                 VerifyData(pub, data, signature, currentAlgorithm, currentProvider);
                 verifyElapsedTime = System.nanoTime() - verifyStartTime;
+
+                sizeMeasures.add(String.valueOf(signature.length));
 
                 sumSign += sigElapsedTime;
                 signMeasures.add(String.valueOf(sigElapsedTime));
@@ -111,6 +114,8 @@ public class Calculations {
             // Calculate mean and standard deviation &
             // Save measured times to a file
             saveCalculateMeasures(signMeasures, verifyMeasures, sumSign, sumVerify, elapsedTime, currentAlgorithm);
+            // Save measured sizes to a file
+            saveSizes(sizeMeasures, currentAlgorithm);
 
         } catch (Exception e) {
             System.out.println(e);
@@ -207,6 +212,33 @@ public class Calculations {
             writer.write("\nstandard deviation samples: " + verifyStandardDeviationSamples + " ns");
             writer.write("\nstandard deviation population: " + verifyStandardDeviationPopulation + " ns");
             writer.write("\ntotal time of verifies: "+ (totalTime) + " ns");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+
+
+    public static void saveSizes(List<String> sizes, String algorithm) {
+        String fileDir = "results/sizes/";
+        String fileName = algorithm+".txt";
+        String filePath = fileDir + fileName;
+
+        // Create the directory, if not exists
+        File dir = new File(fileDir);
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (!created) {
+                System.err.println("Unable to create directory: " + dir.getPath());
+            }
+        }
+
+        try (FileWriter writer = new FileWriter(filePath)) {
+            long sum = 0L;
+            for (String s : sizes) {
+                writer.write(s+"\n");
+                sum += Long.parseLong(s);
+            }
+            writer.write("\nmean: "+(sum/sizes.size())+" B");
         } catch (Exception e) {
             System.out.println(e);
         }
