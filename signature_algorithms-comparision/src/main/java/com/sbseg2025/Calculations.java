@@ -218,7 +218,13 @@ public class Calculations {
         KeyPairGenerator keyPairGenerator;
         // ECDSA
         if (algorithm.equals("SHA256withECDSA") || algorithm.equals("SHA384withECDSA")) {
-            ECGenParameterSpec Spec = new ECGenParameterSpec("secp256k1");
+            ECGenParameterSpec Spec = null;
+            if (algorithm.startsWith("SHA256")) {
+                Spec = new ECGenParameterSpec("secp256k1");
+            }
+            if (algorithm.startsWith("SHA384")) {
+                Spec = new ECGenParameterSpec("secp384r1");
+            }
 
             keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", provider);
             keyPairGenerator.initialize(Spec, new SecureRandom());
