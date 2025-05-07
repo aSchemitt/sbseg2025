@@ -39,25 +39,41 @@ public class Calculations {
 
         // Step 2
         // Algorithms options
-        String fips204 = "ML-DSA";
-        String fips205 = "SLH-DSA";
-        String ecdsa256 = "SHA256withECDSA";
-        String ecdsa384 = "SHA384withECDSA";
-        String currentAlgorithm = ecdsa256;
+        // String fips204 = "ML-DSA";
+        // String fips205 = "SLH-DSA";
+        String[] algorithms = {
+            "SHA256withECDSA",
+            "SHA384withECDSA",
+            "SHA512WITHECDSA",
+            "DILITHIUM",
+            "DILITHIUM2",
+            "DILITHIUM3",
+            "DILITHIUM5",
+            "SPHINCS+-SHA2-192S", 
+            "SPHINCS+-SHA2-192F", 
+            "SPHINCS+-SHA2-256F",
+            "SPHINCS+-SHA2-128F"
+        };
+
+        // String currentAlgorithm = ecdsa256;
         String currentProvider = "BC";
         // String currentProvider = "BCPQC";
         
+        for (String algorithm : algorithms) {
+            runTests(algorithm, currentProvider);
+        }
+
         // run with ECDSA 256
-        runTests(currentAlgorithm, currentProvider);
-        currentAlgorithm = ecdsa384;
-        // run with ECDSA 384
-        runTests(currentAlgorithm, currentProvider);
-        currentAlgorithm = fips204;
-        // run with ML-DSA
-        runTests(currentAlgorithm, currentProvider);
-        currentAlgorithm = fips205;
+        // runTests(currentAlgorithm, currentProvider);
+        // currentAlgorithm = ecdsa384;
+        // // run with ECDSA 384
+        // runTests(currentAlgorithm, currentProvider);
+        // currentAlgorithm = fips204;
+        // // run with ML-DSA
+        // runTests(currentAlgorithm, currentProvider);
+        // currentAlgorithm = fips205;
         // run with SLH-DSA
-        runTests(currentAlgorithm, currentProvider);
+        // runTests(currentAlgorithm, currentProvider);
         
     }
 
@@ -268,13 +284,16 @@ public class Calculations {
     public static KeyPair GenerateKeyPair(String algorithm, String provider) throws Exception {
         KeyPairGenerator keyPairGenerator;
         // ECDSA
-        if (algorithm.equals("SHA256withECDSA") || algorithm.equals("SHA384withECDSA")) {
+        if (algorithm.endsWith("ECDSA")) {
             ECGenParameterSpec Spec = null;
             if (algorithm.startsWith("SHA256")) {
                 Spec = new ECGenParameterSpec("secp256k1");
             }
             if (algorithm.startsWith("SHA384")) {
                 Spec = new ECGenParameterSpec("secp384r1");
+            }
+            if (algorithm.startsWith("SHA512")) {
+                Spec = new ECGenParameterSpec("secp521r1");
             }
 
             keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", provider);
@@ -290,7 +309,12 @@ public class Calculations {
 
     // Generic
     public static byte[] SignData(PrivateKey key, byte[] data, String algorithm, String provider) throws Exception {
-        Signature signer = Signature.getInstance(algorithm, provider);
+        Signature signer = null;
+        if (algorithm.startsWith("SPHINCS")) {
+            signer = Signature.getInstance("SPHINCSPLUS", provider);
+        } else {
+            signer = Signature.getInstance(algorithm, provider);
+        }
         signer.initSign(key);
         signer.update(data);
         // System.out.println("signature algorithm: "+signer.getAlgorithm());//+";
@@ -301,7 +325,12 @@ public class Calculations {
     // Generic
     public static boolean VerifyData(PublicKey key, byte[] data, byte[] signature, String algorithm, String provider)
             throws Exception {
-        Signature verifier = Signature.getInstance(algorithm, provider);
+        Signature verifier = null;
+        if (algorithm.startsWith("SPHINCS")) {
+            verifier = Signature.getInstance("SPHINCSPLUS", provider);
+        } else {
+            verifier = Signature.getInstance(algorithm, provider);
+        }
         verifier.initVerify(key);
         verifier.update(data);
         // System.out.println("Verify algorithm: "+verifier.getAlgorithm());//+";
