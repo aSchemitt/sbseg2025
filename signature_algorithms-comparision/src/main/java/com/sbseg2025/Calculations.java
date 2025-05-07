@@ -102,8 +102,9 @@ public class Calculations {
             byte[] signature = null;
             long sigStartTime, sigElapsedTime, verifyStartTime, verifyElapsedTime;
             double sumSign = 0.0, sumVerify = 0.0;
-            ArrayList<String> signMeasures = new ArrayList<>();
-            ArrayList<String> verifyMeasures = new ArrayList<>();
+            double sigElapsedMS = 0.0, verifyElapsedMs = 0.0;
+            ArrayList<Double> signMeasures = new ArrayList<>();
+            ArrayList<Double> verifyMeasures = new ArrayList<>();
             ArrayList<String> sizeMeasures = new ArrayList<>();
             long startTime, elapsedTime;
 
@@ -112,17 +113,19 @@ public class Calculations {
                 sigStartTime = System.nanoTime();
                 signature = SignData(priv, data, currentAlgorithm, currentProvider);
                 sigElapsedTime = System.nanoTime() - sigStartTime;
+                sigElapsedMS = sigElapsedTime / 1_000_000.0;
                 
                 verifyStartTime = System.nanoTime();
                 VerifyData(pub, data, signature, currentAlgorithm, currentProvider);
                 verifyElapsedTime = System.nanoTime() - verifyStartTime;
+                verifyElapsedMs = verifyElapsedTime / 1_000_000.0;
 
                 sizeMeasures.add(String.valueOf(signature.length));
 
-                sumSign += sigElapsedTime;
-                signMeasures.add(String.valueOf(sigElapsedTime));
-                sumVerify += verifyElapsedTime;
-                verifyMeasures.add(String.valueOf(verifyElapsedTime));
+                sumSign += sigElapsedMS;
+                signMeasures.add(sigElapsedMS);
+                sumVerify += verifyElapsedMs;
+                verifyMeasures.add(verifyElapsedMs);
                 data = updateData(data);
             }
             elapsedTime = System.nanoTime() - startTime;
@@ -156,9 +159,9 @@ public class Calculations {
     }
 
     // Saves measured data and calculates mean and standard deviation
-    public static void saveCalculateMeasures(List<String> signMeasures, List<String> verifyMeasures, double sumSign, double sumVerify, long totalTime, String algorithm) {
+    public static void saveCalculateMeasures(List<Double> signMeasures, List<Double> verifyMeasures, double sumSign, double sumVerify, long totalTime, String algorithm) {
         // sign
-        double signMean, signStandardDeviationBase = 0.0, signStandardDeviationSamples = 0.0, signStandardDeviationPopulation = 0.0, median = 0.0;
+        double signMean, signSTDBase = 0.0, signSTD = 0.0, median = 0.0;
         int size = signMeasures.size();
         signMean = sumSign / size;
 
@@ -176,36 +179,29 @@ public class Calculations {
         }
 
         try (FileWriter writer = new FileWriter(filePath)) {
-            for (String string : signMeasures) {
-                writer.write(string + "\n");
-                // double aux = Double.parseDouble(string.split(";")[0]) - mean;
-                double aux = Double.parseDouble(string) - signMean;
-                signStandardDeviationBase += Math.pow(aux, 2.0);
+            for (Double value : signMeasures) {
+                writer.write(value + "\n");
+                signSTDBase += Math.pow((value - signMean), 2.0);
             }
-            signStandardDeviationSamples = (Math.sqrt(signStandardDeviationBase / (signMeasures.size() - 1))) ;
-            signStandardDeviationPopulation = (Math.sqrt(signStandardDeviationBase / (signMeasures.size()))) ;
-            // System.out.println("mean: " + (signMean) + " ns");
-            // System.out.println("standard deviation samples: " + signStandardDeviationSamples + " ns");
-            // System.out.println("standard deviation population: " + signStandardDeviationPopulation + " ns");
+            signSTD = Math.sqrt(signSTDBase / size);
 
             Collections.sort(signMeasures);
             if (size % 2 == 0) {
-                median = (Double.parseDouble(signMeasures.get((size/2)-1)) + Double.parseDouble(signMeasures.get((size/2)))) / 2;
+                median = (signMeasures.get((size/2)-1) + signMeasures.get(size/2)) / 2;
             }else{
-                median = Double.parseDouble(signMeasures.get(size/2));
+                median = signMeasures.get(size/2);
             }
 
-            writer.write("\nmean: " + (signMean) + " ns");
-            writer.write("\nstandard deviation samples: " + signStandardDeviationSamples + " ns");
-            writer.write("\nstandard deviation population: " + signStandardDeviationPopulation + " ns");
-            writer.write("\ntotal time of signatures: "+ (totalTime) + " ns");
-            writer.write("\nMedian: "+(median)+" ns");
+            writer.write("\nMean: " + (signMean) + " ms");
+            writer.write("\nStandard Deviation: " + signSTD + " ms");
+            writer.write("\nMedian: "+(median)+" ms");
+            writer.write("\nTotal time of signatures: "+ (totalTime) + " ms");
         } catch (Exception e) {
             System.out.println(e);
         }
 
         // verify
-        double verifyMean, verifyStandardDeviationBase = 0.0, verifyStandardDeviationSamples = 0.0, verifyStandardDeviationPopulation = 0.0, verifyMedian = 0.0;
+        double verifyMean, verifySTDBase = 0.0, verifySTD = 0.0, verifyMedian = 0.0;
         size = verifyMeasures.size();
         verifyMean = sumVerify / size;
 
@@ -223,30 +219,23 @@ public class Calculations {
         }
 
         try (FileWriter writer = new FileWriter(filePath)) {
-            for (String string : signMeasures) {
-                writer.write(string + "\n");
-                // double aux = Double.parseDouble(string.split(";")[0]) - mean;
-                double aux = Double.parseDouble(string) - verifyMean;
-                verifyStandardDeviationBase += Math.pow(aux, 2.0);
+            for (Double value : signMeasures) {
+                writer.write(value + "\n");
+                verifySTDBase += Math.pow(value - verifyMean, 2.0);
             }
-            verifyStandardDeviationSamples = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size() - 1))) ;
-            verifyStandardDeviationPopulation = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size()))) ;
-            // System.out.println("mean: " + (verifyMean) + " ns");
-            // System.out.println("standard deviation samples: " + verifyStandardDeviationSamples + " ns");
-            // System.out.println("standard deviation population: " + verifyStandardDeviationPopulation + " ns");
+            verifySTD = Math.sqrt(verifySTDBase / size);
 
             Collections.sort(verifyMeasures);
             if (size % 2 == 0) {
-                verifyMedian = (Double.parseDouble(verifyMeasures.get((size/2)-1)) + Double.parseDouble(verifyMeasures.get((size/2)))) / 2;
+                verifyMedian = (verifyMeasures.get((size/2)-1) + verifyMeasures.get(size/2)) / 2;
             }else{
-                verifyMedian = Double.parseDouble(verifyMeasures.get(size/2));
+                verifyMedian = verifyMeasures.get(size/2);
             }
 
-            writer.write("\nmean: " + (verifyMean) + " ns");
-            writer.write("\nstandard deviation samples: " + verifyStandardDeviationSamples + " ns");
-            writer.write("\nstandard deviation population: " + verifyStandardDeviationPopulation + " ns");
-            writer.write("\ntotal time of verifies: "+ (totalTime) + " ns");
-            writer.write("\nMedian: "+(verifyMedian)+" ns");
+            writer.write("\nMean: " + (verifyMean) + " ms");
+            writer.write("\nStandard Deviation: " + verifySTD + " ms");
+            writer.write("\nMedian: "+(verifyMedian)+" ms");
+            writer.write("\nTotal time of verifies: "+ (totalTime) + " ms");
         } catch (Exception e) {
             System.out.println(e);
         }
