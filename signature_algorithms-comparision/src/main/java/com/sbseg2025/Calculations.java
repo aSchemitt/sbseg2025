@@ -10,6 +10,7 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Calculations {
@@ -141,8 +142,9 @@ public class Calculations {
     // Saves measured data and calculates mean and standard deviation
     public static void saveCalculateMeasures(List<String> signMeasures, List<String> verifyMeasures, double sumSign, double sumVerify, long totalTime, String algorithm) {
         // sign
-        double signMean, signStandardDeviationBase = 0.0, signStandardDeviationSamples = 0.0, signStandardDeviationPopulation = 0.0;
-        signMean = sumSign / signMeasures.size();
+        double signMean, signStandardDeviationBase = 0.0, signStandardDeviationSamples = 0.0, signStandardDeviationPopulation = 0.0, median = 0.0;
+        int size = signMeasures.size();
+        signMean = sumSign / size;
 
         String fileDir = "results/sign/";
         String fileName = algorithm+".txt";
@@ -166,21 +168,30 @@ public class Calculations {
             }
             signStandardDeviationSamples = (Math.sqrt(signStandardDeviationBase / (signMeasures.size() - 1))) ;
             signStandardDeviationPopulation = (Math.sqrt(signStandardDeviationBase / (signMeasures.size()))) ;
-            System.out.println("mean: " + (signMean) + " ns");
-            System.out.println("standard deviation samples: " + signStandardDeviationSamples + " ns");
-            System.out.println("standard deviation population: " + signStandardDeviationPopulation + " ns");
+            // System.out.println("mean: " + (signMean) + " ns");
+            // System.out.println("standard deviation samples: " + signStandardDeviationSamples + " ns");
+            // System.out.println("standard deviation population: " + signStandardDeviationPopulation + " ns");
+
+            Collections.sort(signMeasures);
+            if (size % 2 == 0) {
+                median = (Double.parseDouble(signMeasures.get((size/2)-1)) + Double.parseDouble(signMeasures.get((size/2)))) / 2;
+            }else{
+                median = Double.parseDouble(signMeasures.get(size/2));
+            }
 
             writer.write("\nmean: " + (signMean) + " ns");
             writer.write("\nstandard deviation samples: " + signStandardDeviationSamples + " ns");
             writer.write("\nstandard deviation population: " + signStandardDeviationPopulation + " ns");
             writer.write("\ntotal time of signatures: "+ (totalTime) + " ns");
+            writer.write("\nMedian: "+(median)+" ns");
         } catch (Exception e) {
             System.out.println(e);
         }
 
         // verify
-        double verifyMean, verifyStandardDeviationBase = 0.0, verifyStandardDeviationSamples = 0.0, verifyStandardDeviationPopulation = 0.0;
-        verifyMean = sumVerify / verifyMeasures.size();
+        double verifyMean, verifyStandardDeviationBase = 0.0, verifyStandardDeviationSamples = 0.0, verifyStandardDeviationPopulation = 0.0, verifyMedian = 0.0;
+        size = verifyMeasures.size();
+        verifyMean = sumVerify / size;
 
         fileDir = "results/verify/";
         fileName = algorithm+".txt";
@@ -204,14 +215,22 @@ public class Calculations {
             }
             verifyStandardDeviationSamples = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size() - 1))) ;
             verifyStandardDeviationPopulation = (Math.sqrt(verifyStandardDeviationBase / (verifyMeasures.size()))) ;
-            System.out.println("mean: " + (verifyMean) + " ns");
-            System.out.println("standard deviation samples: " + verifyStandardDeviationSamples + " ns");
-            System.out.println("standard deviation population: " + verifyStandardDeviationPopulation + " ns");
+            // System.out.println("mean: " + (verifyMean) + " ns");
+            // System.out.println("standard deviation samples: " + verifyStandardDeviationSamples + " ns");
+            // System.out.println("standard deviation population: " + verifyStandardDeviationPopulation + " ns");
+
+            Collections.sort(verifyMeasures);
+            if (size % 2 == 0) {
+                verifyMedian = (Double.parseDouble(verifyMeasures.get((size/2)-1)) + Double.parseDouble(verifyMeasures.get((size/2)))) / 2;
+            }else{
+                verifyMedian = Double.parseDouble(verifyMeasures.get(size/2));
+            }
 
             writer.write("\nmean: " + (verifyMean) + " ns");
             writer.write("\nstandard deviation samples: " + verifyStandardDeviationSamples + " ns");
             writer.write("\nstandard deviation population: " + verifyStandardDeviationPopulation + " ns");
             writer.write("\ntotal time of verifies: "+ (totalTime) + " ns");
+            writer.write("\nMedian: "+(verifyMedian)+" ns");
         } catch (Exception e) {
             System.out.println(e);
         }
