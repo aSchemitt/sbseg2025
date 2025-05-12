@@ -61,18 +61,7 @@ public class Calculations {
             runTests(algorithm, currentProvider);
         }
 
-        // run with ECDSA 256
-        // runTests(currentAlgorithm, currentProvider);
-        // currentAlgorithm = ecdsa384;
-        // // run with ECDSA 384
-        // runTests(currentAlgorithm, currentProvider);
-        // currentAlgorithm = fips204;
-        // // run with ML-DSA
-        // runTests(currentAlgorithm, currentProvider);
-        // currentAlgorithm = fips205;
-        // run with SLH-DSA
-        // runTests(currentAlgorithm, currentProvider);
-        
+
     }
 
     public static void runTests(String currentAlgorithm, String currentProvider) {
@@ -83,21 +72,28 @@ public class Calculations {
             PrivateKey priv = keys.getPrivate();
             PublicKey pub = keys.getPublic();
 
+            // Step 3.5
+            // Generate the Signer/Verifier
+            Signature signer = createSigner(currentAlgorithm, currentProvider);
+            Signature verifier = createVerifier(currentAlgorithm, currentProvider);
+
             // Step 4
             // Generate random data
             byte[] data = generateData(1024);
 
             // Step 5
             // Warmup
+            byte[] signature = null;
             int WarmupIterations = 1_000;
             for (int i = 0; i < WarmupIterations; i++) {
-                SignData(priv, data, currentAlgorithm, currentProvider);
+                signature = SignData(signer, priv, data);
+                VerifyData(verifier, pub, data, signature);
             }
             
             // Step 6
             // Sign the transactions
             int numbOfIterations = 10_000;
-            byte[] signature = null;
+            
             long sigStartTime, sigElapsedTime, verifyStartTime, verifyElapsedTime;
             double sumSign = 0.0, sumVerify = 0.0;
             ArrayList<Long> signMeasures = new ArrayList<>();
@@ -108,11 +104,11 @@ public class Calculations {
             startTime = System.nanoTime();
             for (int i = 0; i < numbOfIterations; i++) {
                 sigStartTime = System.nanoTime();
-                signature = SignData(priv, data, currentAlgorithm, currentProvider);
+                signature = SignData(signer, priv, data);
                 sigElapsedTime = System.nanoTime() - sigStartTime;
                 
                 verifyStartTime = System.nanoTime();
-                VerifyData(pub, data, signature, currentAlgorithm, currentProvider);
+                VerifyData(verifier, pub, data, signature);
                 verifyElapsedTime = System.nanoTime() - verifyStartTime;
 
                 sizeMeasures.add(String.valueOf(signature.length));
@@ -291,14 +287,19 @@ public class Calculations {
         return keyPairGenerator.generateKeyPair();
     }
 
-    // Generic
-    public static byte[] SignData(PrivateKey key, byte[] data, String algorithm, String provider) throws Exception {
+
+    public static Signature createSigner(String algorithm, String provider) throws Exception {
         Signature signer = null;
         if (algorithm.startsWith("SPHINCS")) {
             signer = Signature.getInstance("SPHINCSPLUS", provider);
         } else {
             signer = Signature.getInstance(algorithm, provider);
         }
+        return signer;
+    }
+    // Generic
+    public static byte[] SignData(Signature signer, PrivateKey key, byte[] data) throws Exception {
+        
         signer.initSign(key);
         signer.update(data);
         // System.out.println("signature algorithm: "+signer.getAlgorithm());//+";
@@ -306,15 +307,19 @@ public class Calculations {
         return signer.sign();
     }
 
-    // Generic
-    public static boolean VerifyData(PublicKey key, byte[] data, byte[] signature, String algorithm, String provider)
-            throws Exception {
+    public static Signature createVerifier(String algorithm, String provider) throws Exception {
         Signature verifier = null;
         if (algorithm.startsWith("SPHINCS")) {
             verifier = Signature.getInstance("SPHINCSPLUS", provider);
         } else {
             verifier = Signature.getInstance(algorithm, provider);
         }
+        return verifier;
+    }
+    // Generic
+    public static boolean VerifyData(Signature verifier, PublicKey key, byte[] data, byte[] signature)
+            throws Exception {
+        
         verifier.initVerify(key);
         verifier.update(data);
         // System.out.println("Verify algorithm: "+verifier.getAlgorithm());//+";
